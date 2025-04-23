@@ -49,7 +49,7 @@ const LoginScreen = () => {
               }}
             >
               <Text
-                className="text-4xl font-semibold text-white mb-6 text-center py-6 font-headings"
+                className="text-4xl font-semibold text-white  mb-6 text-center py-6 font-headings"
                 style={{ fontFamily: "heading" }}
               >
                 Welcome Back!
