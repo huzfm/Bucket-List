@@ -18,6 +18,12 @@ exports.signup = async (req, res) => {
                         errors: err.errors
                   })
             }
+            else if (err.code === 11000) {
+                  res.status(400).json({
+                        message: 'Email already exists',
+                        err: "email in use"
+                  })
+            }
             res.status(401).json({
                   message: "FAILED",
                   error: err
