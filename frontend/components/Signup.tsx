@@ -1,4 +1,5 @@
 import { Link } from "expo-router";
+import { AxiosError } from "axios";
 import React, { useState } from "react";
 import {
   View,
@@ -11,19 +12,96 @@ import {
   TouchableWithoutFeedback,
   Keyboard,
   ImageBackground,
+  Alert,
 } from "react-native";
+import api from "@/utils/api";
+
+// Utility function for email validation
+const isValidEmail = (email: string) => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+};
 
 const SignupScreen = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const handleSignup = async () => {
+    setErrors({});
 
-  const handleSignup = () => {
-    if (password === confirmPassword) {
-      console.log("Signing up:", email, password);
-    } else {
-      console.log("Passwords do not match.");
+    // Client-side validation
+    if (!email || !password || !confirmPassword) {
+      Alert.alert("Please fill in all the details");
+      return;
+    }
+    if (!isValidEmail(email)) {
+      setErrors({ email: "Please enter a valid email address." });
+      return;
+    }
+    if (password.length < 6) {
+      setErrors({ password: "Password must be at least 6 characters." });
+      return;
+    }
+    if (password !== confirmPassword) {
+      setErrors({ confirmPassword: "Passwords do not match." });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await api.post("/signup", {
+        email,
+        password,
+        confirmPassword,
+      });
+
+      if (response.status === 200) {
+        Alert.alert(
+          "Registration successful",
+          "You can now log in to your account"
+        );
+        // Optionally clear form or navigate to login
+        setEmail("");
+        setPassword("");
+        setConfirmPassword("");
+      }
+    } catch (error) {
+      const err = error as AxiosError<any>;
+      console.log("Signup error:", err.response?.data);
+
+      if (err.response?.data?.message) {
+        // Handle duplicate email error
+        if (
+          err.response.data.message.includes("E11000") ||
+          err.response.data.message.includes("duplicate key") ||
+          err.response.data.message.toLowerCase().includes("already exists")
+        ) {
+          setErrors({
+            email: "This email is already registered",
+          });
+        }
+        // Handle other backend validation errors
+        else if (Array.isArray(err.response?.data?.errors)) {
+          const fieldErrors: Record<string, string> = {};
+          err.response.data.errors.forEach((e: any) => {
+            fieldErrors[e.path[0]] = e.message;
+          });
+          setErrors(fieldErrors);
+        }
+        // Handle other custom error messages from backend
+        else {
+          setErrors({ general: err.response.data.message });
+        }
+      } else {
+        setErrors({
+          general: "Signup failed. Please check your connection and try again.",
+        });
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -34,7 +112,7 @@ const SignupScreen = () => {
       source={require("../assets/images/login_bg.jpeg")}
     >
       <KeyboardAvoidingView
-        className="flex-1 bg"
+        className="flex-1"
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
@@ -52,7 +130,7 @@ const SignupScreen = () => {
               }}
             >
               <Text
-                className="text-4xl font-semibold text-white mb-6 text-center py-6 font-headings"
+                className="text-4xl font-semibold text-white mb-6 text-center py-6"
                 style={{ fontFamily: "heading" }}
               >
                 Create an Account
@@ -67,12 +145,17 @@ const SignupScreen = () => {
                     className="flex-1 py-2 text-white"
                     value={email}
                     onChangeText={setEmail}
-                    style={{
-                      fontFamily: "placeholder",
-                      fontSize: 18,
-                    }}
+                    style={{ fontFamily: "placeholder", fontSize: 18 }}
                   />
                 </View>
+                {errors.email && (
+                  <Text
+                    className="text-red-400 mt-1 ml-2"
+                    style={{ fontFamily: "placeholder" }}
+                  >
+                    {errors.email}
+                  </Text>
+                )}
               </View>
 
               {/* Password Input */}
@@ -96,6 +179,14 @@ const SignupScreen = () => {
                     </Text>
                   </TouchableOpacity>
                 </View>
+                {errors.password && (
+                  <Text
+                    className="text-red-400 mt-1 ml-2  "
+                    style={{ fontFamily: "placeholder" }}
+                  >
+                    {errors.password}
+                  </Text>
+                )}
               </View>
 
               {/* Confirm Password Input */}
@@ -119,20 +210,38 @@ const SignupScreen = () => {
                     </Text>
                   </TouchableOpacity>
                 </View>
+                {errors.confirmPassword && (
+                  <Text
+                    className="text-red-400 mt-1 ml-2"
+                    style={{ fontFamily: "placeholder" }}
+                  >
+                    {errors.confirmPassword}
+                  </Text>
+                )}
               </View>
 
               {/* Sign Up Button */}
               <TouchableOpacity
-                className="bg-white py-3 rounded-xl"
+                className={`py-3 rounded-xl ${
+                  loading ? "bg-gray-500" : "bg-white"
+                }`}
                 onPress={handleSignup}
+                disabled={loading}
               >
                 <Text
                   className="text-black text-center font-semibold text-base"
                   style={{ fontFamily: "headingBold", fontSize: 16 }}
                 >
-                  Sign Up
+                  {loading ? "Signing up..." : "Signup"}
                 </Text>
               </TouchableOpacity>
+
+              {/* General Error */}
+              {errors.general && (
+                <Text className="text-red-400 text-center mt-2">
+                  {errors.general}
+                </Text>
+              )}
 
               {/* Login Option */}
               <Text

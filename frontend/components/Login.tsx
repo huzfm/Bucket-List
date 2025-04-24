@@ -16,6 +16,7 @@ import {
 } from "react-native";
 
 import api from "../utils/api";
+import { isLoading } from "expo-font";
 // Import the icons from 'react-native-vector-icons'
 
 const LoginScreen = () => {
@@ -128,14 +129,17 @@ const LoginScreen = () => {
 
               {/* Login Button */}
               <TouchableOpacity
-                className="bg-white py-3 rounded-xl"
+                className={`py-3 rounded-xl ${
+                  loading ? "bg-gray-500" : "bg-white"
+                }`}
                 onPress={handleLogin}
+                disabled={loading} // Optional: disables button when loading
               >
                 <Text
                   className="text-black text-center font-semibold text-base"
                   style={{ fontFamily: "headingBold", fontSize: 16 }}
                 >
-                  Sign In
+                  {loading ? "Logging in..." : "Login"}
                 </Text>
               </TouchableOpacity>
 
