@@ -1,5 +1,6 @@
-import { Link } from "expo-router";
+import { Link, useRouter } from "expo-router";
 import React, { useState } from "react";
+
 import {
   View,
   Text,
@@ -11,17 +12,47 @@ import {
   TouchableWithoutFeedback,
   Keyboard,
   ImageBackground,
+  Alert,
 } from "react-native";
 
+import api from "../utils/api";
+import { isLoading } from "expo-font";
 // Import the icons from 'react-native-vector-icons'
 
 const LoginScreen = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const handleLogin = () => {
-    console.log("Logging in:", email, password);
+  const router = useRouter();
+  const handleLogin = async () => {
+    if (!email && !password) {
+      Alert.alert("Please enter email and password");
+      return;
+    }
+    setLoading(true);
+    try {
+      const response = await api.post("/login", {
+        email,
+        password,
+      });
+      console.log(response.data);
+      Alert.alert("Login successfull");
+      router.push("/signup");
+    } catch (err) {
+      if (err instanceof Error) {
+        console.error(
+          "Login error:",
+          (err as any).response?.data || err.message
+        );
+      } else {
+        console.error("Login error:", err);
+      }
+      Alert.alert("Login Failed", (err as any).response?.data?.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -49,7 +80,7 @@ const LoginScreen = () => {
               }}
             >
               <Text
-                className="text-4xl font-semibold text-white mb-6 text-center py-6 font-headings"
+                className="text-4xl font-semibold text-white  mb-6 text-center py-6 font-headings"
                 style={{ fontFamily: "heading" }}
               >
                 Welcome Back!
@@ -98,14 +129,17 @@ const LoginScreen = () => {
 
               {/* Login Button */}
               <TouchableOpacity
-                className="bg-white py-3 rounded-xl"
+                className={`py-3 rounded-xl ${
+                  loading ? "bg-gray-500" : "bg-white"
+                }`}
                 onPress={handleLogin}
+                disabled={loading} // Optional: disables button when loading
               >
                 <Text
                   className="text-black text-center font-semibold text-base"
                   style={{ fontFamily: "headingBold", fontSize: 16 }}
                 >
-                  Sign In
+                  {loading ? "Logging in..." : "Login"}
                 </Text>
               </TouchableOpacity>
 
