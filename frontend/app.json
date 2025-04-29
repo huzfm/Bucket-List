@@ -1,8 +1,6 @@
 {
   "expo": {
-    "assets": [
-      "./assets/fonts"
-    ],
+    "assets": ["./assets/fonts"],
     "name": "frontend",
     "slug": "frontend",
     "version": "1.0.0",
