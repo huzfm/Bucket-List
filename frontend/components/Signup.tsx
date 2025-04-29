@@ -1,5 +1,4 @@
-import { Link } from "expo-router";
-import { AxiosError } from "axios";
+import { Link, useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
   View,
@@ -12,15 +11,10 @@ import {
   TouchableWithoutFeedback,
   Keyboard,
   ImageBackground,
+  ActivityIndicator,
   Alert,
 } from "react-native";
-import api from "@/utils/api";
-
-// Utility function for email validation
-const isValidEmail = (email: string) => {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return emailRegex.test(email);
-};
+import api from "../utils/api";
 
 const SignupScreen = () => {
   const [email, setEmail] = useState("");
@@ -28,77 +22,53 @@ const SignupScreen = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const router = useRouter();
+
   const handleSignup = async () => {
-    setErrors({});
-
-    // Client-side validation
+    // Basic frontend validations
     if (!email || !password || !confirmPassword) {
-      Alert.alert("Please fill in all the details");
-      return;
-    }
-    if (!isValidEmail(email)) {
-      setErrors({ email: "Please enter a valid email address." });
-      return;
-    }
-    if (password.length < 6) {
-      setErrors({ password: "Password must be at least 6 characters." });
-      return;
-    }
-    if (password !== confirmPassword) {
-      setErrors({ confirmPassword: "Passwords do not match." });
+      Alert.alert("Error", "Please fill in all fields");
       return;
     }
 
-    setLoading(true);
+    if (!email.includes("@") || !email.includes(".")) {
+      Alert.alert("Error", "Please enter a valid email address");
+      return;
+    }
+
+    if (password.length < 6) {
+      Alert.alert("Error", "Password must be at least 6 characters");
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      Alert.alert("Error", "Passwords do not match");
+      return;
+    }
+
     try {
+      setLoading(true);
+
       const response = await api.post("/signup", {
         email,
         password,
         confirmPassword,
       });
 
-      if (response.status === 200) {
-        Alert.alert(
-          "Registration successful",
-          "You can now log in to your account"
-        );
-        // Optionally clear form or navigate to login
-        setEmail("");
-        setPassword("");
-        setConfirmPassword("");
-      }
+      // If successful
+      console.log("Signup success:", response.data);
+      Alert.alert("Success", "Registration successful!");
+      router.push("/login");
     } catch (error) {
-      const err = error as AxiosError<any>;
-      console.log("Signup error:", err.response?.data);
+      console.log("Signup error:", error);
 
-      if (err.response?.data?.message) {
-        // Handle duplicate email error
-        if (
-          err.response.data.message.includes("E11000") ||
-          err.response.data.message.includes("duplicate key") ||
-          err.response.data.message.toLowerCase().includes("already exists")
-        ) {
-          setErrors({
-            email: "This email is already registered",
-          });
-        }
-        // Handle other backend validation errors
-        else if (Array.isArray(err.response?.data?.errors)) {
-          const fieldErrors: Record<string, string> = {};
-          err.response.data.errors.forEach((e: any) => {
-            fieldErrors[e.path[0]] = e.message;
-          });
-          setErrors(fieldErrors);
-        }
-        // Handle other custom error messages from backend
-        else {
-          setErrors({ general: err.response.data.message });
-        }
+      if ((error as any).response && (error as any).response.data) {
+        // Assuming your backend sends { message: "Email already exists" } or similar
+        const serverMessage = (error as any).response.data.message;
+        Alert.alert("Signup Failed", serverMessage || "Unknown error occurred");
       } else {
-        setErrors({
-          general: "Signup failed. Please check your connection and try again.",
-        });
+        Alert.alert("Signup Failed", "Network error. Please try again.");
       }
     } finally {
       setLoading(false);
@@ -112,7 +82,7 @@ const SignupScreen = () => {
       source={require("../assets/images/login_bg.jpeg")}
     >
       <KeyboardAvoidingView
-        className="flex-1"
+        className="flex-1 bg"
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
@@ -130,7 +100,7 @@ const SignupScreen = () => {
               }}
             >
               <Text
-                className="text-4xl font-semibold text-white mb-6 text-center py-6"
+                className="text-4xl font-semibold text-white mb-6 text-center py-6 font-headings"
                 style={{ fontFamily: "heading" }}
               >
                 Create an Account
@@ -145,17 +115,12 @@ const SignupScreen = () => {
                     className="flex-1 py-2 text-white"
                     value={email}
                     onChangeText={setEmail}
-                    style={{ fontFamily: "placeholder", fontSize: 18 }}
+                    style={{
+                      fontFamily: "placeholder",
+                      fontSize: 18,
+                    }}
                   />
                 </View>
-                {errors.email && (
-                  <Text
-                    className="text-red-400 mt-1 ml-2"
-                    style={{ fontFamily: "placeholder" }}
-                  >
-                    {errors.email}
-                  </Text>
-                )}
               </View>
 
               {/* Password Input */}
@@ -179,14 +144,6 @@ const SignupScreen = () => {
                     </Text>
                   </TouchableOpacity>
                 </View>
-                {errors.password && (
-                  <Text
-                    className="text-red-400 mt-1 ml-2  "
-                    style={{ fontFamily: "placeholder" }}
-                  >
-                    {errors.password}
-                  </Text>
-                )}
               </View>
 
               {/* Confirm Password Input */}
@@ -210,38 +167,27 @@ const SignupScreen = () => {
                     </Text>
                   </TouchableOpacity>
                 </View>
-                {errors.confirmPassword && (
-                  <Text
-                    className="text-red-400 mt-1 ml-2"
-                    style={{ fontFamily: "placeholder" }}
-                  >
-                    {errors.confirmPassword}
-                  </Text>
-                )}
               </View>
 
               {/* Sign Up Button */}
               <TouchableOpacity
                 className={`py-3 rounded-xl ${
-                  loading ? "bg-gray-500" : "bg-white"
+                  loading ? "bg-gray-300" : "bg-white"
                 }`}
                 onPress={handleSignup}
-                disabled={loading}
+                disabled={loading} // disables the button
               >
-                <Text
-                  className="text-black text-center font-semibold text-base"
-                  style={{ fontFamily: "headingBold", fontSize: 16 }}
-                >
-                  {loading ? "Signing up..." : "Signup"}
-                </Text>
+                {loading ? (
+                  <ActivityIndicator color="#000" />
+                ) : (
+                  <Text
+                    className="text-black text-center font-semibold text-base"
+                    style={{ fontFamily: "headingBold", fontSize: 16 }}
+                  >
+                    Register
+                  </Text>
+                )}
               </TouchableOpacity>
-
-              {/* General Error */}
-              {errors.general && (
-                <Text className="text-red-400 text-center mt-2">
-                  {errors.general}
-                </Text>
-              )}
 
               {/* Login Option */}
               <Text

@@ -13,10 +13,10 @@ import {
   Keyboard,
   ImageBackground,
   Alert,
+  ActivityIndicator,
 } from "react-native";
 
 import api from "../utils/api";
-import { isLoading } from "expo-font";
 // Import the icons from 'react-native-vector-icons'
 
 const LoginScreen = () => {
@@ -27,7 +27,7 @@ const LoginScreen = () => {
 
   const router = useRouter();
   const handleLogin = async () => {
-    if (!email && !password) {
+    if (!email || !password) {
       Alert.alert("Please enter email and password");
       return;
     }
@@ -66,11 +66,11 @@ const LoginScreen = () => {
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-          <View className="flex-1 justify-center px-6">
+          <View className="flex-1 justify-center px-8 ">
             <StatusBar barStyle="light-content" backgroundColor="#0a0a0a" />
 
             <View
-              className="border p-6 rounded-3xl bg-neutral-900"
+              className=" p-6 rounded-3xl bg-neutral-900  "
               style={{
                 shadowColor: "white",
                 shadowOffset: { width: 10, height: 60 },
@@ -130,17 +130,21 @@ const LoginScreen = () => {
               {/* Login Button */}
               <TouchableOpacity
                 className={`py-3 rounded-xl ${
-                  loading ? "bg-gray-500" : "bg-white"
+                  loading ? "bg-gray-300" : "bg-white"
                 }`}
                 onPress={handleLogin}
-                disabled={loading} // Optional: disables button when loading
+                disabled={loading} // disables the button
               >
-                <Text
-                  className="text-black text-center font-semibold text-base"
-                  style={{ fontFamily: "headingBold", fontSize: 16 }}
-                >
-                  {loading ? "Logging in..." : "Login"}
-                </Text>
+                {loading ? (
+                  <ActivityIndicator color="#000" />
+                ) : (
+                  <Text
+                    className="text-black text-center font-semibold text-base"
+                    style={{ fontFamily: "headingBold", fontSize: 16 }}
+                  >
+                    Login
+                  </Text>
+                )}
               </TouchableOpacity>
 
               {/* Sign Up Option */}
